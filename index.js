@@ -7,9 +7,14 @@ import contactRoutes from "./routes/contactRoutes.js";
 import { router as leadRoutes } from "./routes/leadRoutes.js";
 import taskRoutes from './routes/taskRoutes.js';
 
-
 // Load environment variables first
 dotenv.config();
+
+// Verify critical environment variables
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim() === '') {
+  console.warn("WARNING: JWT_SECRET is not set in environment. Using a fallback secret for development. THIS IS NOT SECURE FOR PRODUCTION!");
+  process.env.JWT_SECRET = "temp_fallback_secret_" + Math.random().toString(36).substring(2);
+}
 
 // Initialize express app
 const app = express();
@@ -34,12 +39,9 @@ app.use('/api/tasks', taskRoutes);
 // Start the reminder scheduler if not in test mode
 try {
   if (process.env.NODE_ENV !== 'test') {
-    const started = startReminderScheduler();
-    if (started) {
-      console.log('Reminder scheduler started - will check for due reminders every minute and send emails');
-    } else {
-      console.log('Reminder scheduler failed to start');
-    }
+    const { startReminderService } = await import('./utils/reminderService.js');
+    startReminderService();
+    console.log('Reminder scheduler started - will check for due reminders every minute');
   }
 } catch (error) {
   console.error('Error starting reminder scheduler:', error);
