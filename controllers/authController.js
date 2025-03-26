@@ -86,3 +86,25 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get Current User Controller
+export const getCurrentUser = async (req, res) => {
+  try {
+    // User information is already attached to the request by the auth middleware
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return user data (excluding sensitive information)
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      // Add any other fields you want to return
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

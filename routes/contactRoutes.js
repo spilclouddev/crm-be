@@ -5,19 +5,25 @@ import {
   getContactById,
   updateContact,
   deleteContact,
+  uploadFiles
 } from "../controllers/contactController.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // Routes for /api/contacts
 router.route("/")
-  .get(getContacts)
-  .post(createContact);
+  .get(authMiddleware, getContacts)
+  .post(authMiddleware, createContact);
 
 // Routes for /api/contacts/:id
 router.route("/:id")
-  .get(getContactById)
-  .put(updateContact)
-  .delete(deleteContact);
+  .get(authMiddleware, getContactById)
+  .put(authMiddleware, updateContact)
+  .delete(authMiddleware, deleteContact);
+
+// Route for file uploads
+router.route("/upload")
+  .post(authMiddleware, uploadFiles);
 
 export default router;

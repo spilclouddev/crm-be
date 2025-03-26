@@ -1,9 +1,11 @@
 import Lead from "../models/Lead.js";
 import Contact from "../models/Contact.js";
 import mongoose from "mongoose";
+import { createAuditLog, identifyChanges } from "./leadAuditController.js";
 
 // Placeholder user ID for all leads (no authentication)
 const DEFAULT_USER_ID = new mongoose.Types.ObjectId("000000000000000000000000");
+const DEFAULT_USER_NAME = "System User"; // Default user name
 
 // Get all leads with contact information
 export const getLeads = async (req, res) => {
@@ -22,7 +24,7 @@ export const getLeads = async (req, res) => {
 // Create a new lead
 export const createLead = async (req, res) => {
   try {
-    const { contactPerson, value, stage } = req.body;
+    const { contactPerson, value, currencyCode, audValue, stage, priority, notes, leadOwner } = req.body;
 
     // Validate required fields
     if (!contactPerson || !value) {
@@ -44,11 +46,31 @@ export const createLead = async (req, res) => {
       contactPerson,
       company, // Use company from contact
       value: Number(value),
+      currencyCode: currencyCode || 'AUD',
+      audValue: audValue !== undefined ? Number(audValue) : Number(value), // Store AUD value if provided
       stage: stage || "New Lead",
+      priority: priority || "Medium",
+      notes: notes || "",
+      leadOwner: leadOwner || "",
       userId: DEFAULT_USER_ID,
     });
 
     const savedLead = await newLead.save();
+    
+    // Create audit log for new lead creation
+    await createAuditLog(
+      savedLead._id,
+      req.user?.id || DEFAULT_USER_ID,
+      req.user?.name || DEFAULT_USER_NAME,
+      [
+        { field: "stage", oldValue: "", newValue: savedLead.stage },
+        { field: "priority", oldValue: "", newValue: savedLead.priority },
+        { field: "value", oldValue: "", newValue: savedLead.value.toString() },
+        { field: "currencyCode", oldValue: "", newValue: savedLead.currencyCode },
+        { field: "leadOwner", oldValue: "", newValue: savedLead.leadOwner },
+        { field: "notes", oldValue: "", newValue: savedLead.notes }
+      ]
+    );
     
     // Populate contact person details before returning
     const populatedLead = await Lead.findById(savedLead._id).populate(
@@ -85,7 +107,14 @@ export const getLeadById = async (req, res) => {
 // Update a lead
 export const updateLead = async (req, res) => {
   try {
-    const { contactPerson, value, stage, company } = req.body;
+    const { contactPerson, value, currencyCode, audValue, stage, company, priority, notes, leadOwner } = req.body;
+    
+    // First, fetch the current lead to compare changes later
+    const currentLead = await Lead.findById(req.params.id);
+    if (!currentLead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+    
     let updateData = {};
 
     // Convert value to number if it's a string
@@ -95,6 +124,16 @@ export const updateLead = async (req, res) => {
       updateData.value = numericValue;
     }
     
+    // Update currency code if provided
+    if (currencyCode !== undefined) {
+      updateData.currencyCode = currencyCode;
+    }
+    
+    // Add audValue if provided
+    if (audValue !== undefined) {
+      updateData.audValue = Number(audValue);
+    }
+    
     if (stage !== undefined) {
       updateData.stage = stage;
     }
@@ -102,6 +141,19 @@ export const updateLead = async (req, res) => {
     // If company is explicitly provided, use it
     if (company !== undefined) {
       updateData.company = company;
+    }
+
+    // Add new fields to update data
+    if (priority !== undefined) {
+      updateData.priority = priority;
+    }
+
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+
+    if (leadOwner !== undefined) {
+      updateData.leadOwner = leadOwner;
     }
 
     // Verify contact person exists if provided
@@ -128,6 +180,18 @@ export const updateLead = async (req, res) => {
     if (!updatedLead) {
       return res.status(404).json({ error: "Lead not found" });
     }
+    
+    // Create audit log entry for the changes
+    const changes = identifyChanges(currentLead, updatedLead);
+    
+    if (changes.length > 0) {
+      await createAuditLog(
+        updatedLead._id,
+        req.user?.id || DEFAULT_USER_ID,
+        req.user?.name || DEFAULT_USER_NAME,
+        changes
+      );
+    }
 
     res.status(200).json(updatedLead);
   } catch (error) {
@@ -144,6 +208,14 @@ export const deleteLead = async (req, res) => {
     if (!deletedLead) {
       return res.status(404).json({ error: "Lead not found" });
     }
+    
+    // Create audit log for lead deletion
+    await createAuditLog(
+      deletedLead._id,
+      req.user?.id || DEFAULT_USER_ID,
+      req.user?.name || DEFAULT_USER_NAME,
+      [{ field: "status", oldValue: "Active", newValue: "Deleted" }]
+    );
 
     res.status(200).json({ message: "Lead deleted successfully" });
   } catch (error) {
@@ -154,35 +226,49 @@ export const deleteLead = async (req, res) => {
 
 // Get contact details for lead form
 export const getContactDetails = async (req, res) => {
-  try {
-    const contactId = req.params.id;
-    const contact = await Contact.findById(contactId);
-    
-    if (!contact) {
-      return res.status(404).json({ error: "Contact not found" });
+    try {
+      const contactId = req.params.id;
+      
+      // Validate that contact ID is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(contactId)) {
+        console.log(`Invalid contact ID format: ${contactId}`);
+        return res.status(400).json({ error: "Invalid contact ID format" });
+      }
+      
+      const contact = await Contact.findById(contactId);
+      
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      res.status(200).json({
+        _id: contact._id,
+        name: contact.name,
+        company: contact.company
+      });
+    } catch (error) {
+      console.error("Error fetching contact details:", error);
+      res.status(500).json({ error: "Failed to fetch contact details" });
     }
-    
-    res.status(200).json({
-      _id: contact._id,
-      name: contact.name,
-      company: contact.company
-    });
-  } catch (error) {
-    console.error("Error fetching contact details:", error);
-    res.status(500).json({ error: "Failed to fetch contact details" });
-  }
-};
+  };
 
 // Get sales pipeline summary
 export const getPipelineSummary = async (req, res) => {
   try {
+    // Use audValue for pipeline calculations
     const pipelineData = await Lead.aggregate([
       {
         $group: {
           _id: "$stage",
-          totalValue: { $sum: "$value" },
+          totalValue: { $sum: "$audValue" }, // Use audValue for total
           count: { $sum: 1 },
-          leads: { $push: { id: "$_id", company: "$company", value: "$value" } }
+          leads: { 
+            $push: { 
+              id: "$_id", 
+              company: "$company", 
+              value: "$audValue" // Use audValue for individual leads
+            } 
+          }
         }
       },
       {
