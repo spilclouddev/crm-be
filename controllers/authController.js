@@ -4,9 +4,13 @@ import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 
-// Generate JWT Token
+// Generate JWT Token with longer expiry
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  // Use a fallback secret if JWT_SECRET is not set
+  const secret = process.env.JWT_SECRET || "fallback_secret_for_development";
+  
+  // Increase token expiry from 7d to 30d to prevent frequent expirations
+  return jwt.sign({ id }, secret, { expiresIn: "30d" });
 };
 
 // Signup Controller
@@ -37,7 +41,15 @@ export const login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = generateToken(user._id);
-    res.json({ token });
+    
+    res.json({ 
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      } 
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
