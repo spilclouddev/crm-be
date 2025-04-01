@@ -9,7 +9,8 @@ import {
   getCompanies,
   getReminders,
   getPendingReminders,
-  markReminderAsSent
+  markReminderAsSent,
+  getMyTasks // Include the new controller function
 } from "../controllers/taskController.js";
 import { 
   getPendingNotifications, 
@@ -23,6 +24,9 @@ const router = express.Router();
 router.route("/")
   .get(authMiddleware, getTasks)
   .post(authMiddleware, createTask);
+
+// My tasks route - get tasks assigned to current user
+router.get("/my", authMiddleware, getMyTasks);
 
 router.route("/:id")
   .get(authMiddleware, getTaskById)
