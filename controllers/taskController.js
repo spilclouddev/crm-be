@@ -18,6 +18,31 @@ export const getTasks = async (req, res) => {
   }
 };
 
+// Get tasks assigned to current user
+export const getMyTasks = async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Get the user's name from the DB
+    const user = await User.findById(req.user.id).select('name');
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Find tasks where assignedTo matches the user's name
+    const myTasks = await Task.find({ assignedTo: user.name }).sort({ dueDate: 1 });
+    
+    res.status(200).json(myTasks);
+  } catch (error) {
+    console.error("Error fetching my tasks:", error);
+    res.status(500).json({ error: "Failed to fetch your tasks" });
+  }
+};
+
 // Helper function to handle reminder creation or updates
 const handleReminderForTask = async (task, userId) => {
   // Only proceed if both reminderDate and reminderTime are explicitly provided
