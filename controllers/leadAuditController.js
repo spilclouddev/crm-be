@@ -1,5 +1,4 @@
-//import LeadAuditLog from "../models/LeadAuditLog.js";
-import leadAuditLog from "../models/leadAuditLogmodel/leadAuditLog.js"
+import leadAuditLog from "../models/leadAuditLogmodel/leadAuditLog.js";
 import Contact from "../models/Contact.js";
 import mongoose from "mongoose";
 
@@ -87,14 +86,17 @@ async function processContactPersonChange(change) {
 export const identifyChanges = (oldLead, newLead) => {
   const changes = [];
   
-  // Fields to track in audit log
+  // Fields to track in audit log - add country and nextStep
   const fieldsToTrack = [
     "stage",
     "priority",
     "value",
+    "currencyCode",
     "notes",
     "leadOwner",
-    "contactPerson"
+    "contactPerson",
+    "country",     // Add country field to track
+    "nextStep"     // Add nextStep field to track
   ];
   
   for (const field of fieldsToTrack) {

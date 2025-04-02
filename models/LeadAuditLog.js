@@ -1,47 +1,47 @@
 import mongoose from "mongoose";
 
-const leadAuditSchema = new mongoose.Schema(
-  {
-    leadId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Lead",
-      required: true,
-      index: true // Add index for performance when querying by leadId
-    },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
-    userName: {
-      type: String,
-      required: true
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
-    changes: [
-      {
-        field: {
-          type: String,
-          required: true
-        },
-        oldValue: {
-          type: String
-        },
-        newValue: {
-          type: String
-        }
-      }
-    ]
+// Schema for individual changes
+const changeSchema = new mongoose.Schema({
+  field: {
+    type: String,
+    required: true
   },
-  { timestamps: false } // We're explicitly managing the timestamp field
-);
+  oldValue: {
+    type: String,
+    default: ""
+  },
+  newValue: {
+    type: String,
+    default: ""
+  }
+});
 
-// Create index on timestamp field for sorting audit logs by date
-leadAuditSchema.index({ timestamp: -1 });
+// Main audit log schema
+const leadAuditLogSchema = new mongoose.Schema({
+  leadId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Lead",
+    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  userName: {
+    type: String,
+    default: "System User"
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  },
+  changes: [changeSchema]
+});
 
-const LeadAuditLog = mongoose.model("LeadAuditLog", leadAuditSchema);
+// Add indexes for quick retrieval
+leadAuditLogSchema.index({ leadId: 1 });
+leadAuditLogSchema.index({ timestamp: -1 });
+
+const LeadAuditLog = mongoose.model("LeadAuditLog", leadAuditLogSchema);
 
 export default LeadAuditLog;
