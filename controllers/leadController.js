@@ -33,8 +33,10 @@ export const createLead = async (req, res) => {
       company, 
       country,
       value, 
+      subscription,
       currencyCode, 
       audValue, 
+      audSubscription,
       stage, 
       priority, 
       notes, 
@@ -102,8 +104,10 @@ export const createLead = async (req, res) => {
         company: companyName,
         country: country || 'Australia', // Default to Australia if not provided
         value: Number(value),
+        subscription: Number(subscription || 0),
         currencyCode: currencyCode || 'AUD',
         audValue: audValue !== undefined ? Number(audValue) : Number(value), // Store AUD value if provided
+        audSubscription: audSubscription !== undefined ? Number(audSubscription) : Number(subscription || 0), // Store AUD subscription if provided
         stage: stage || "New Lead",
         priority: priority || "Medium",
         notes: notes || "",
@@ -126,6 +130,7 @@ export const createLead = async (req, res) => {
           { field: "stage", oldValue: "", newValue: savedLead.stage },
           { field: "priority", oldValue: "", newValue: savedLead.priority },
           { field: "value", oldValue: "", newValue: savedLead.value.toString() },
+          { field: "subscription", oldValue: "", newValue: savedLead.subscription.toString() },
           { field: "currencyCode", oldValue: "", newValue: savedLead.currencyCode },
           { field: "country", oldValue: "", newValue: savedLead.country },
           { field: "nextStep", oldValue: "", newValue: savedLead.nextStep },
@@ -199,8 +204,10 @@ export const updateLead = async (req, res) => {
       company, 
       country, 
       value, 
+      subscription,
       currencyCode, 
       audValue, 
+      audSubscription,
       stage, 
       priority, 
       notes, 
@@ -228,6 +235,13 @@ export const updateLead = async (req, res) => {
       updateData.value = numericValue;
     }
     
+    // Convert subscription to number if it's a string
+    if (subscription !== undefined) {
+      const numericSubscription = typeof subscription === 'string' ? 
+        Number(subscription.replace(/[^0-9.-]+/g, '')) : subscription;
+      updateData.subscription = numericSubscription;
+    }
+    
     // Update country if provided
     if (country !== undefined) {
       updateData.country = country;
@@ -241,6 +255,11 @@ export const updateLead = async (req, res) => {
     // Add audValue if provided
     if (audValue !== undefined) {
       updateData.audValue = Number(audValue);
+    }
+    
+    // Add audSubscription if provided
+    if (audSubscription !== undefined) {
+      updateData.audSubscription = Number(audSubscription);
     }
     
     if (stage !== undefined) {
@@ -422,18 +441,20 @@ export const getContactDetails = async (req, res) => {
 // Get sales pipeline summary
 export const getPipelineSummary = async (req, res) => {
   try {
-    // Use audValue for pipeline calculations
+    // Use audValue and audSubscription for pipeline calculations
     const pipelineData = await Lead.aggregate([
       {
         $group: {
           _id: "$stage",
-          totalValue: { $sum: "$audValue" }, // Use audValue for total
+          totalValue: { $sum: "$audValue" }, // Use audValue for total value
+          totalSubscription: { $sum: "$audSubscription" }, // Use audSubscription for total subscription
           count: { $sum: 1 },
           leads: { 
             $push: { 
               id: "$_id", 
               company: "$company", 
-              value: "$audValue" // Use audValue for individual leads
+              value: "$audValue", // Use audValue for individual leads
+              subscription: "$audSubscription" // Use audSubscription for individual leads
             } 
           }
         }

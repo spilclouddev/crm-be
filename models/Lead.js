@@ -42,6 +42,12 @@ const leadSchema = new mongoose.Schema(
       required: true,
       min: 0
     },
+    // New subscription field
+    subscription: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
     // Currency code field
     currencyCode: {
       type: String,
@@ -56,6 +62,19 @@ const leadSchema = new mongoose.Schema(
         // If currency is AUD or no currency is specified, use the original value
         if (!this.currencyCode || this.currencyCode === 'AUD') {
           return this.value;
+        }
+        // Otherwise, this will be set explicitly
+        return null;
+      }
+    },
+    // AUD subscription field - stores the converted subscription value
+    audSubscription: {
+      type: Number,
+      min: 0,
+      default: function() {
+        // If currency is AUD or no currency is specified, use the original subscription value
+        if (!this.currencyCode || this.currencyCode === 'AUD') {
+          return this.subscription;
         }
         // Otherwise, this will be set explicitly
         return null;
@@ -113,7 +132,7 @@ leadSchema.index({ createdAt: -1 });
 leadSchema.index({ isManualEntry: 1 });
 leadSchema.index({ country: 1 });
 
-// Pre-save middleware to ensure audValue is set if not manually provided
+// Pre-save middleware to ensure audValue and audSubscription are set if not manually provided
 leadSchema.pre('save', function(next) {
   // If audValue is not set and currency is AUD, use the original value
   if (this.audValue === undefined || this.audValue === null) {
@@ -121,6 +140,14 @@ leadSchema.pre('save', function(next) {
       this.audValue = this.value;
     }
   }
+  
+  // If audSubscription is not set and currency is AUD, use the original subscription value
+  if (this.audSubscription === undefined || this.audSubscription === null) {
+    if (!this.currencyCode || this.currencyCode === 'AUD') {
+      this.audSubscription = this.subscription;
+    }
+  }
+  
   next();
 });
 

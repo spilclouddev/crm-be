@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import { router as leadRoutes } from "./routes/leadRoutes.js";
 import taskRoutes from './routes/taskRoutes.js';
+import { router as chargeableRoutes } from './routes/chargeableRoutes.js'; // Import chargeable routes
 
 // Load environment variables first
 dotenv.config();
@@ -35,11 +36,15 @@ app.use("/api/auth", authRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/leads", leadRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/chargeables', chargeableRoutes); // Add chargeables routes
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Start the reminder scheduler if not in test mode
 try {
   if (process.env.NODE_ENV !== 'test') {
-    const { startReminderService } = await import('./utils/reminderService.js');
+    const { startReminderService } = await import('./services/reminderService.js');
     startReminderService();
     console.log('Reminder scheduler started - will check for due reminders every minute');
   }
