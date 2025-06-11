@@ -6,14 +6,14 @@ const sendEmail = async (to, subject, text) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER || "usendercrmmail@gmail.com",
+        pass: process.env.EMAIL_PASS || "qyyt etfw gktg viap",
       },
     });
     
     // Define email options
     const mailOptions = {
-      from: `"CRM System" <${process.env.GMAIL_USER}>`,
+      from: `"CRM System" <sendercrmmail@gmail.com>`,
       to, // Can be any email address, including corporate emails
       subject,
       text,

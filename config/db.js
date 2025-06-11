@@ -35,6 +35,7 @@ const connectDB = async () => {
     }
     
     console.log("MongoDB Connected Successfully");
+    console.log('MONGO_URI from env:', process.env.MONGO_URI);
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {

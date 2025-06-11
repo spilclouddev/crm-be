@@ -5,12 +5,12 @@ import cron from "node-cron";
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
   // Replace with your email configuration
-  host: process.env.EMAIL_HOST || "smtp.example.com",
+  host: process.env.EMAIL_HOST || "smtp.gmail.com",
   port: process.env.EMAIL_PORT || 587,
   secure: process.env.EMAIL_SECURE === "true",
   auth: {
-    user: process.env.EMAIL_USER || "user@example.com",
-    pass: process.env.EMAIL_PASSWORD || "password",
+    user: process.env.EMAIL_USER || "usendercrmmail@gmail.com",
+    pass: process.env.EMAIL_PASSWORD || "qyyt etfw gktg viap",
   },
 });
 
