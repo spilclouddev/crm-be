@@ -76,6 +76,9 @@ const attachmentSchema = new mongoose.Schema({
   fileSize: {
     type: Number,
   },
+  cloudinaryId: {
+    type: String, // Cloudinary public_id for deletion
+  },
   uploadedAt: {
     type: Date,
     default: Date.now
@@ -136,8 +139,8 @@ const contactSchema = new mongoose.Schema(
       trim: true,
     },
     contactPersons: [contactPersonSchema],
-    companyLogo: attachmentSchema,
-    attachments: [attachmentSchema],
+    companyLogo: attachmentSchema, // Single logo
+    attachments: [attachmentSchema], // Multiple attachments
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
