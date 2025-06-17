@@ -34,7 +34,7 @@ const leadSchema = new mongoose.Schema(
     // Country dropdown
     country: {
       type: String,
-      enum: ["Argentina", "Australia", "Canada", "Croatia", "New Zealand", "USA"],
+      enum: ["Argentina", "Australia", "Canada", "Croatia", "Mauritius", "USA"],
       default: "Australia"
     },
     value: {
